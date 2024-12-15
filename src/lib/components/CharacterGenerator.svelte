@@ -38,8 +38,8 @@
 
 	interface WeaponTraining {
 		weapon: string;
-		attackSkill: number;
-		parrySkill: number;
+		attackTraining: number;
+		parryTraining: number;
 		category: string; // Added to help with grouping
 		originalCost: number; // Track how much was spent initially
 	}
@@ -48,6 +48,7 @@
 		category: string;
 		name: string;
 		basic: number; // Basic training cost
+		baseChance: number; // Basic chance to hit
 		costs: {
 			low: number; // 05-25%
 			medium: number; // 30-50%
@@ -56,143 +57,186 @@
 	}
 
 	const weaponTypes: WeaponType[] = [
-		// Cutting Weapons, One Handed
+		// 10% Chance Base
 		{
-			category: 'Cutting Weapon, One Handed',
-			name: 'Axe',
-			basic: 20,
-			costs: { low: 300, medium: 500, high: 1000 }
-		},
-		{
-			category: 'Cutting Weapon, One Handed',
-			name: 'Sword',
-			basic: 10,
-			costs: { low: 300, medium: 500, high: 1000 }
-		},
-
-		// Cutting Weapons, Two Handed
-		{
-			category: 'Cutting Weapon, Two Handed',
-			name: 'Axe',
-			basic: 15,
-			costs: { low: 300, medium: 600, high: 1200 }
-		},
-		{
-			category: 'Cutting Weapon, Two Handed',
-			name: 'Sword',
-			basic: 5,
-			costs: { low: 500, medium: 1000, high: 2000 }
-		},
-
-		// Cut and Thrust Weapons
-		{
-			category: 'Cut and Thrust Weapons, One Handed',
-			name: 'Rapier',
-			basic: 5,
-			costs: { low: 500, medium: 1000, high: 2000 }
-		},
-		{
-			category: 'Cut and Thrust Weapons, One Handed',
-			name: 'Shortsword',
-			basic: 15,
+			category: 'Missile Weapons',
+			name: 'Axe (thrown)',
+			basic: 25,
+			baseChance: 10,
 			costs: { low: 200, medium: 400, high: 800 }
 		},
 		{
-			category: 'Cut and Thrust Weapons, One Handed',
-			name: 'Sickle',
-			basic: 15,
+			category: 'Missile Weapons',
+			name: 'Bow',
+			basic: 25,
+			baseChance: 10,
 			costs: { low: 200, medium: 400, high: 800 }
 		},
-
-		// Hand to Hand Weapons
 		{
 			category: 'Hand to Hand Weapons',
-			name: 'Butt',
+			name: 'Head Butt',
 			basic: 25,
-			costs: { low: 100, medium: 300, high: 600 }
+			baseChance: 10,
+			costs: { low: 200, medium: 400, high: 800 }
 		},
+		{
+			category: 'Defensive Items',
+			name: 'Medium Shield',
+			basic: 25,
+			baseChance: 10,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Thrusting Weapons',
+			name: 'Pike',
+			basic: 10,
+			baseChance: 10,
+			costs: { low: 400, medium: 800, high: 1600 }
+		},
+		{
+			category: 'Missile Weapons',
+			name: 'Sling',
+			basic: 25,
+			baseChance: 10,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Thrusting Weapons',
+			name: 'Spear, 1H',
+			basic: 10,
+			baseChance: 10,
+			costs: { low: 200, medium: 400, high: 1000 }
+		},
+		{
+			category: 'Cut and Thrust Weapons',
+			name: 'Sword, 1H',
+			basic: 10,
+			baseChance: 10,
+			costs: { low: 300, medium: 500, high: 1000 }
+		},
+
+		// 15% Chance Base
+		{
+			category: 'Cut and Thrust Weapons',
+			name: 'Axe, 1H',
+			basic: 20,
+			baseChance: 15,
+			costs: { low: 300, medium: 500, high: 1000 }
+		},
+		{
+			category: 'Missile Weapons',
+			name: 'Flail',
+			basic: 15,
+			baseChance: 15,
+			costs: { low: 400, medium: 800, high: 1200 }
+		},
+		{
+			category: 'Missile Weapons',
+			name: 'Javelin/Dart (thrown)',
+			basic: 25,
+			baseChance: 15,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Hand to Hand Weapons',
+			name: 'Knife (thrown)',
+			basic: 25,
+			baseChance: 15,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Smashing Weapons',
+			name: 'Maul',
+			basic: 20,
+			baseChance: 15,
+			costs: { low: 200, medium: 600, high: 1500 }
+		},
+		{
+			category: 'Cut and Thrust Weapons',
+			name: 'Shortsword',
+			basic: 15,
+			baseChance: 15,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Cut and Thrust Weapons',
+			name: 'Sickle',
+			basic: 15,
+			baseChance: 15,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+
+		// 20% Chance Base
+		{
+			category: 'Cut and Thrust Weapons',
+			name: 'Club/Mace, 1H or 2H',
+			basic: 25,
+			baseChance: 20,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Missile Weapons',
+			name: 'Crossbow',
+			basic: 25,
+			baseChance: 20,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Smashing Weapons',
+			name: 'Hammer, 1H',
+			basic: 15,
+			baseChance: 20,
+			costs: { low: 300, medium: 600, high: 1000 }
+		},
+		{
+			category: 'Defensive Items',
+			name: 'Large Shield',
+			basic: 25,
+			baseChance: 20,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Thrusting Weapons',
+			name: 'Spear, 2H',
+			basic: 20,
+			baseChance: 20,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+		{
+			category: 'Hand to Hand Weapons',
+			name: 'Staff',
+			basic: 25,
+			baseChance: 20,
+			costs: { low: 200, medium: 400, high: 800 }
+		},
+
+		// 25% Chance Base
 		{
 			category: 'Hand to Hand Weapons',
 			name: 'Dagger',
 			basic: 25,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Fist',
-			basic: 25,
+			baseChance: 25,
 			costs: { low: 200, medium: 400, high: 800 }
 		},
 		{
 			category: 'Hand to Hand Weapons',
 			name: 'Grapple',
 			basic: 25,
+			baseChance: 25,
 			costs: { low: 500, medium: 800, high: 1200 }
 		},
 		{
 			category: 'Hand to Hand Weapons',
 			name: 'Kick',
 			basic: 25,
+			baseChance: 25,
 			costs: { low: 200, medium: 400, high: 1000 }
 		},
-
-		// Smashing Weapons
 		{
-			category: 'Smashing Weapons, One Handed',
-			name: 'Hammer',
-			basic: 15,
-			costs: { low: 300, medium: 600, high: 1000 }
-		},
-		{
-			category: 'Smashing Weapons, One Handed',
-			name: 'Mace',
+			category: 'Missile Weapons',
+			name: 'Thrown Rock',
 			basic: 25,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Smashing Weapons, Two Handed',
-			name: 'Hammer',
-			basic: 15,
-			costs: { low: 300, medium: 600, high: 1200 }
-		},
-		{
-			category: 'Smashing Weapons, Two Handed',
-			name: 'Maul',
-			basic: 20,
-			costs: { low: 200, medium: 600, high: 1500 }
-		},
-
-		// Flexible Weapons
-		{
-			category: 'Smashing Weapons, Flexible One Handed',
-			name: 'Flail',
-			basic: 15,
-			costs: { low: 400, medium: 800, high: 1200 }
-		},
-		{
-			category: 'Smashing Weapons, Flexible One Handed',
-			name: 'Morning Star',
-			basic: 5,
-			costs: { low: 400, medium: 800, high: 1600 }
-		},
-
-		// Thrusting Weapons
-		{
-			category: 'Thrusting Weapons, One Handed',
-			name: 'Spear',
-			basic: 10,
-			costs: { low: 200, medium: 400, high: 1000 }
-		},
-		{
-			category: 'Thrusting Weapons, One Handed',
-			name: 'Pike',
-			basic: 10,
-			costs: { low: 400, medium: 800, high: 1600 }
-		},
-		{
-			category: 'Thrusting Weapons, Two Handed',
-			name: 'Spear',
-			basic: 20,
+			baseChance: 25,
 			costs: { low: 200, medium: 400, high: 800 }
 		}
 	];
@@ -393,21 +437,25 @@
 	let guildDebt = 0;
 	let showTrainingPanel = false;
 
+	function calculateEffectiveSkill(baseChance: number, trainedSkill: number): number {
+		return baseChance + trainedSkill;
+	}
+
 	function adjustSkill(weapon: string, skillType: 'attack' | 'parry', adjustment: number) {
 		const weaponType = weaponTypes.find((w) => w.name === weapon);
 		if (!weaponType) return;
 
 		currentTraining = currentTraining.map((t) => {
 			if (t.weapon === weapon) {
-				const currentSkill = skillType === 'attack' ? t.attackSkill : t.parrySkill;
-				const newSkill = currentSkill + adjustment;
+				const currentTraining = skillType === 'attack' ? t.attackTraining : t.parryTraining;
+				const newTraining = currentTraining + adjustment;
 
 				// Check bounds
-				if (newSkill < 5 || newSkill > 75) return t;
+				if (newTraining < 0 || newTraining > 70) return t; // Max 70% training to reach 75-95% effective
 
 				// Calculate cost difference
-				const oldCost = calculateTrainingCost(weaponType, currentSkill);
-				const newCost = calculateTrainingCost(weaponType, newSkill);
+				const oldCost = calculateTrainingCost(weaponType, currentTraining);
+				const newCost = calculateTrainingCost(weaponType, newTraining);
 				const costDiff = adjustment > 0 ? newCost : -oldCost;
 
 				// Check if we can afford it
@@ -425,7 +473,6 @@
 						availableMoney -= costDiff;
 					}
 				} else {
-					// Refund money or reduce debt
 					if (guildDebt > 0) {
 						guildDebt = Math.max(0, guildDebt + costDiff);
 					} else {
@@ -435,7 +482,9 @@
 
 				return {
 					...t,
-					[skillType === 'attack' ? 'attackSkill' : 'parrySkill']: newSkill
+					attackTraining: skillType === 'attack' ? newTraining : t.attackTraining,
+					parryTraining: skillType === 'parry' ? newTraining : t.parryTraining,
+					originalCost: t.originalCost + (costDiff > 0 ? costDiff : 0)
 				};
 			}
 			return t;
@@ -484,8 +533,8 @@
 		(w: WeaponType): WeaponTraining => ({
 			weapon: w.name,
 			category: w.category,
-			attackSkill: 5,
-			parrySkill: 5,
+			attackTraining: 0,
+			parryTraining: 0,
 			originalCost: 0
 		})
 	);
@@ -495,8 +544,8 @@
 			currentTraining.find((t) => t.weapon === weaponName) || {
 				weapon: weaponName,
 				category: '',
-				attackSkill: 5,
-				parrySkill: 5,
+				attackTraining: 0,
+				parryTraining: 0,
 				originalCost: 0
 			}
 		);
@@ -679,62 +728,81 @@
 										<tr class="border-b text-sm">
 											<th class="p-2 text-left">Weapon</th>
 											<th class="p-2">Basic Cost</th>
-											<th class="p-2">Attack %</th>
+											<th class="p-2">Base %</th>
+											<th class="p-2" colspan="2">Attack</th>
 											<th class="p-2">Next Cost</th>
-											<th class="p-2">Parry %</th>
+											<th class="p-2" colspan="2">Parry</th>
 											<th class="p-2">Next Cost</th>
+										</tr>
+										<tr class="border-b text-xs text-gray-600">
+											<th class="p-2 text-left"></th>
+											<th></th>
+											<th></th>
+											<th class="p-2">Training</th>
+											<th class="p-2">Effective</th>
+											<th></th>
+											<th class="p-2">Training</th>
+											<th class="p-2">Effective</th>
+											<th></th>
 										</tr>
 									</thead>
 									<tbody>
 										{#each group.weapons as training}
 											{@const weapon = weaponTypes.find((w) => w.name === training.weapon)}
 											{#if weapon}
-												<tr class="border-b">
+												<tr class="border-b hover:bg-gray-50">
 													<td class="p-2">{training.weapon}</td>
 													<td class="p-2 text-center">{weapon.basic}L</td>
+													<td class="p-2 text-center">{weapon.baseChance}%</td>
 													<td class="p-2">
 														<div class="flex items-center justify-center space-x-2">
 															<button
 																on:click={() => adjustSkill(training.weapon, 'attack', -5)}
-																disabled={training.attackSkill <= 5}
-																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+																disabled={training.attackTraining <= 0}
+																class="rounded bg-gray-200 px-2 py-1 text-sm hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
 															>
 																-
 															</button>
-															<span class="w-12 text-center">{training.attackSkill}%</span>
+															<span class="w-12 text-center">+{training.attackTraining}%</span>
 															<button
 																on:click={() => adjustSkill(training.weapon, 'attack', 5)}
-																disabled={training.attackSkill >= 75}
-																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+																disabled={training.attackTraining >= 70}
+																class="rounded bg-gray-200 px-2 py-1 text-sm hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
 															>
 																+
 															</button>
 														</div>
 													</td>
-													<td class="p-2 text-center">
-														{calculateTrainingCost(weapon, training.attackSkill)}L
+													<td class="p-2 text-center font-medium">
+														{calculateEffectiveSkill(weapon.baseChance, training.attackTraining)}%
+													</td>
+													<td class="p-2 text-center text-sm">
+														{calculateTrainingCost(weapon, training.attackTraining)}L
 													</td>
 													<td class="p-2">
 														<div class="flex items-center justify-center space-x-2">
 															<button
 																on:click={() => adjustSkill(training.weapon, 'parry', -5)}
-																disabled={training.parrySkill <= 5}
-																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+																disabled={training.parryTraining <= 0}
+																class="rounded bg-gray-200 px-2 py-1 text-sm hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
 															>
 																-
 															</button>
-															<span class="w-12 text-center">{training.parrySkill}%</span>
+															<span class="w-12 text-center">+{training.parryTraining}%</span>
 															<button
 																on:click={() => adjustSkill(training.weapon, 'parry', 5)}
-																disabled={training.parrySkill >= 75}
-																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+																disabled={training.parryTraining >= 70}
+																class="rounded bg-gray-200 px-2 py-1 text-sm hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400"
 															>
 																+
 															</button>
 														</div>
 													</td>
-													<td class="p-2 text-center">
-														{calculateTrainingCost(weapon, training.parrySkill)}L
+													<td class="p-2 text-center font-medium">
+														{calculateEffectiveSkill(weapon.baseChance, training.parryTraining)}%
+													</td>
+													<td class="p-2 text-center text-sm">
+														{calculateTrainingCost(weapon, training.parryTraining)}L
 													</td>
 												</tr>
 											{/if}
