@@ -40,6 +40,8 @@
 		weapon: string;
 		attackSkill: number;
 		parrySkill: number;
+		category: string; // Added to help with grouping
+		originalCost: number; // Track how much was spent initially
 	}
 
 	interface WeaponType {
@@ -254,6 +256,7 @@
 		DEX: 0,
 		CHA: 0
 	};
+
 	let background = '';
 	let startingMoney = 0;
 	let derivationNotes: string[] = [];
@@ -385,11 +388,67 @@
 	$: strikeRank = stats.SIZ + stats.DEX;
 	$: defense = Math.max(0, (stats.DEX - 12) * 5);
 
-	let availableMoney = 0;
+	let availableMoney = startingMoney;
 	let guildCredit = 0;
 	let guildDebt = 0;
-	let trainingPurchases: TrainingPurchase[] = [];
 	let showTrainingPanel = false;
+
+	function adjustSkill(weapon: string, skillType: 'attack' | 'parry', adjustment: number) {
+		const weaponType = weaponTypes.find((w) => w.name === weapon);
+		if (!weaponType) return;
+
+		currentTraining = currentTraining.map((t) => {
+			if (t.weapon === weapon) {
+				const currentSkill = skillType === 'attack' ? t.attackSkill : t.parrySkill;
+				const newSkill = currentSkill + adjustment;
+
+				// Check bounds
+				if (newSkill < 5 || newSkill > 75) return t;
+
+				// Calculate cost difference
+				const oldCost = calculateTrainingCost(weaponType, currentSkill);
+				const newCost = calculateTrainingCost(weaponType, newSkill);
+				const costDiff = adjustment > 0 ? newCost : -oldCost;
+
+				// Check if we can afford it
+				if (costDiff > 0 && costDiff > availableMoney + guildCredit - guildDebt) {
+					alert('Not enough money or credit available');
+					return t;
+				}
+
+				// Update money/debt
+				if (costDiff > 0) {
+					if (costDiff > availableMoney) {
+						guildDebt += costDiff - availableMoney;
+						availableMoney = 0;
+					} else {
+						availableMoney -= costDiff;
+					}
+				} else {
+					// Refund money or reduce debt
+					if (guildDebt > 0) {
+						guildDebt = Math.max(0, guildDebt + costDiff);
+					} else {
+						availableMoney -= costDiff;
+					}
+				}
+
+				return {
+					...t,
+					[skillType === 'attack' ? 'attackSkill' : 'parrySkill']: newSkill
+				};
+			}
+			return t;
+		});
+	}
+
+	// Group weapons by category
+	$: groupedWeapons = Array.from(new Set(currentTraining.map((t) => t.category))).map(
+		(category) => ({
+			category,
+			weapons: currentTraining.filter((t) => t.category === category)
+		})
+	);
 
 	const trainingOptions: TrainingOption[] = [
 		{ weapon: 'Broadsword', baseCost: 100, currentAttack: 10, currentParry: 5, maxTrainable: 75 },
@@ -421,95 +480,26 @@
 	}
 
 	// Track current training levels separately from weapon definitions
-	let currentTraining: WeaponTraining[] = weaponTypes.map((w: WeaponType) => ({
-		weapon: w.name,
-		attackSkill: 5, // Starting skill level
-		parrySkill: 5 // Starting skill level
-	}));
+	let currentTraining: WeaponTraining[] = weaponTypes.map(
+		(w: WeaponType): WeaponTraining => ({
+			weapon: w.name,
+			category: w.category,
+			attackSkill: 5,
+			parrySkill: 5,
+			originalCost: 0
+		})
+	);
 
 	function getCurrentTraining(weaponName: string): WeaponTraining {
 		return (
 			currentTraining.find((t) => t.weapon === weaponName) || {
 				weapon: weaponName,
+				category: '',
 				attackSkill: 5,
-				parrySkill: 5
+				parrySkill: 5,
+				originalCost: 0
 			}
 		);
-	}
-
-	function purchaseTraining(weapon: string, skillType: 'attack' | 'parry', weaponType: WeaponType) {
-		const training = getCurrentTraining(weapon);
-		const currentSkill = skillType === 'attack' ? training.attackSkill : training.parrySkill;
-
-		if (currentSkill >= 75) {
-			alert('Cannot train beyond 75% through guilds');
-			return;
-		}
-
-		const cost = calculateTrainingCost(weaponType, currentSkill);
-
-		if (cost > availableMoney + guildCredit - guildDebt) {
-			alert('Not enough money or credit available');
-			return;
-		}
-
-		// If using credit, add to debt
-		if (cost > availableMoney) {
-			const creditNeeded = cost - availableMoney;
-			guildDebt += creditNeeded;
-			availableMoney = 0;
-		} else {
-			availableMoney -= cost;
-		}
-
-		// Record the purchase
-		trainingPurchases = [
-			...trainingPurchases,
-			{
-				weapon,
-				skillType,
-				percentagePoints: 5,
-				cost
-			}
-		];
-
-		// Update the training levels
-		currentTraining = currentTraining.map((t) => {
-			if (t.weapon === weapon) {
-				if (skillType === 'attack') {
-					t.attackSkill += 5;
-				} else {
-					t.parrySkill += 5;
-				}
-			}
-			return t;
-		});
-	}
-
-	function undoLastPurchase() {
-		const lastPurchase = trainingPurchases[trainingPurchases.length - 1];
-		if (!lastPurchase) return;
-
-		// Refund money or reduce debt
-		if (guildDebt > 0) {
-			guildDebt -= Math.min(guildDebt, lastPurchase.cost);
-		} else {
-			availableMoney += lastPurchase.cost;
-		}
-
-		// Update training levels
-		currentTraining = currentTraining.map((t) => {
-			if (t.weapon === lastPurchase.weapon) {
-				if (lastPurchase.skillType === 'attack') {
-					t.attackSkill -= 5;
-				} else {
-					t.parrySkill -= 5;
-				}
-			}
-			return t;
-		});
-
-		trainingPurchases = trainingPurchases.slice(0, -1);
 	}
 </script>
 
@@ -680,55 +670,80 @@
 						<div>Net Available: {availableMoney + guildCredit - guildDebt} L</div>
 					</div>
 
-					<div class="space-y-6">
-						{#each Array.from(new Set(weaponTypes.map((w) => w.category))) as category}
-							<div class="rounded-lg border p-4">
-								<h4 class="mb-3 font-semibold">{category}</h4>
-								<div class="grid gap-4 sm:grid-cols-2">
-									{#each weaponTypes.filter((w) => w.category === category) as weapon}
-										<div class="rounded-lg border p-3">
-											<h5 class="mb-2 font-medium">{weapon.name}</h5>
-											<div class="space-y-2">
-												<div class="text-sm">Basic Cost: {weapon.basic}L</div>
-												<div class="grid grid-cols-2 gap-2">
-													<button
-														on:click={() => purchaseTraining(weapon.name, 'attack', weapon)}
-														class="rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
-													>
-														Train Attack (+5%)
-													</button>
-													<button
-														on:click={() => purchaseTraining(weapon.name, 'parry', weapon)}
-														class="rounded bg-blue-500 px-2 py-1 text-sm text-white hover:bg-blue-600"
-													>
-														Train Parry (+5%)
-													</button>
-												</div>
-											</div>
-										</div>
-									{/each}
-								</div>
+					{#each groupedWeapons as group}
+						<div class="mb-6">
+							<h3 class="mb-2 font-bold">{group.category}</h3>
+							<div class="overflow-x-auto">
+								<table class="w-full">
+									<thead>
+										<tr class="border-b text-sm">
+											<th class="p-2 text-left">Weapon</th>
+											<th class="p-2">Basic Cost</th>
+											<th class="p-2">Attack %</th>
+											<th class="p-2">Next Cost</th>
+											<th class="p-2">Parry %</th>
+											<th class="p-2">Next Cost</th>
+										</tr>
+									</thead>
+									<tbody>
+										{#each group.weapons as training}
+											{@const weapon = weaponTypes.find((w) => w.name === training.weapon)}
+											{#if weapon}
+												<tr class="border-b">
+													<td class="p-2">{training.weapon}</td>
+													<td class="p-2 text-center">{weapon.basic}L</td>
+													<td class="p-2">
+														<div class="flex items-center justify-center space-x-2">
+															<button
+																on:click={() => adjustSkill(training.weapon, 'attack', -5)}
+																disabled={training.attackSkill <= 5}
+																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+															>
+																-
+															</button>
+															<span class="w-12 text-center">{training.attackSkill}%</span>
+															<button
+																on:click={() => adjustSkill(training.weapon, 'attack', 5)}
+																disabled={training.attackSkill >= 75}
+																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+															>
+																+
+															</button>
+														</div>
+													</td>
+													<td class="p-2 text-center">
+														{calculateTrainingCost(weapon, training.attackSkill)}L
+													</td>
+													<td class="p-2">
+														<div class="flex items-center justify-center space-x-2">
+															<button
+																on:click={() => adjustSkill(training.weapon, 'parry', -5)}
+																disabled={training.parrySkill <= 5}
+																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+															>
+																-
+															</button>
+															<span class="w-12 text-center">{training.parrySkill}%</span>
+															<button
+																on:click={() => adjustSkill(training.weapon, 'parry', 5)}
+																disabled={training.parrySkill >= 75}
+																class="rounded px-2 py-1 text-sm disabled:text-gray-400"
+															>
+																+
+															</button>
+														</div>
+													</td>
+													<td class="p-2 text-center">
+														{calculateTrainingCost(weapon, training.parrySkill)}L
+													</td>
+												</tr>
+											{/if}
+										{/each}
+									</tbody>
+								</table>
 							</div>
-						{/each}
-					</div>
-					{#if trainingPurchases.length > 0}
-						<div class="mt-4">
-							<h4 class="mb-2 font-semibold">Training Purchases:</h4>
-							<ul class="space-y-1 text-sm">
-								{#each trainingPurchases as purchase}
-									<li>
-										{purchase.weapon} - {purchase.skillType} +5% ({purchase.cost}L)
-									</li>
-								{/each}
-							</ul>
-							<button
-								on:click={undoLastPurchase}
-								class="mt-2 rounded bg-red-500 px-2 py-1 text-sm text-white"
-							>
-								Undo Last Purchase
-							</button>
 						</div>
-					{/if}
+					{/each}
 				</div>
 			{/if}
 		</div>
