@@ -1,4 +1,6 @@
 <script lang="ts">
+	import HitLocationChart from './HitLocationChart.svelte';
+
 	interface Stats {
 		STR: number;
 		CON: number;
@@ -552,7 +554,7 @@
 	}
 </script>
 
-<div class="w-full max-w-2xl rounded-lg border p-6 shadow-sm">
+<div class="w-full max-w-4xl rounded-lg border p-6 shadow-sm">
 	<header class="space-y-1.5">
 		<h2 class="text-2xl font-semibold">RuneQuest Character Generator</h2>
 	</header>
@@ -573,7 +575,7 @@
 			</button>
 		</div>
 
-		<div class="grid grid-cols-2 gap-4">
+		<div class="grid grid-cols-3 gap-4">
 			<div class="space-y-2">
 				<label for="character-name" class="text-sm font-medium">Character Name</label>
 				<input
@@ -600,7 +602,8 @@
 			</div>
 		</div>
 
-		<div class="grid grid-cols-2 gap-4">
+		<!-- Primary Stats Column -->
+		<div class="grid grid-cols-3 gap-4">
 			<div class="space-y-4">
 				<h3 class="font-bold">Primary Statistics</h3>
 				{#each Object.entries(stats) as [stat, value]}
@@ -611,6 +614,7 @@
 				{/each}
 			</div>
 
+			<!-- Derived Stats Column -->
 			<div class="space-y-4">
 				<h3 class="font-bold">Derived Statistics</h3>
 				<div class="flex items-center justify-between">
@@ -637,6 +641,11 @@
 					<span class="text-sm font-medium">Defense</span>
 					<div class="font-mono">{defense}%</div>
 				</div>
+			</div>
+
+			<!-- Hit Location Chart -->
+			<div class="relative">
+				<HitLocationChart {hitPoints} baseArmor={0} />
 			</div>
 		</div>
 
