@@ -1,5 +1,13 @@
 <script lang="ts">
+	import { weaponTypes } from '$lib/weapons/data';
 	import HitLocationChart from './HitLocationChart.svelte';
+	import {
+		calculateWeaponStrikeRank,
+		calculateEffectiveSkill,
+		calculateTrainingCost
+	} from '$lib/weapons/utils';
+	import WeaponPanel from '$lib/components/WeaponPanel.svelte';
+	import type { WeaponDisplay, WeaponType } from '$lib/weapons/types';
 
 	interface Stats {
 		STR: number;
@@ -23,13 +31,6 @@
 		message: string;
 	}
 
-	interface TrainingPurchase {
-		weapon: string;
-		skillType: 'attack' | 'parry';
-		percentagePoints: number;
-		cost: number;
-	}
-
 	interface TrainingOption {
 		weapon: string;
 		baseCost: number; // Cost per 5% increment
@@ -45,203 +46,6 @@
 		category: string; // Added to help with grouping
 		originalCost: number; // Track how much was spent initially
 	}
-
-	interface WeaponType {
-		category: string;
-		name: string;
-		basic: number; // Basic training cost
-		baseChance: number; // Basic chance to hit
-		costs: {
-			low: number; // 05-25%
-			medium: number; // 30-50%
-			high: number; // 55-75%
-		};
-	}
-
-	const weaponTypes: WeaponType[] = [
-		// 10% Chance Base
-		{
-			category: 'Missile Weapons',
-			name: 'Axe (thrown)',
-			basic: 25,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Bow',
-			basic: 25,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Head Butt',
-			basic: 25,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Defensive Items',
-			name: 'Medium Shield',
-			basic: 25,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Thrusting Weapons',
-			name: 'Pike',
-			basic: 10,
-			baseChance: 10,
-			costs: { low: 400, medium: 800, high: 1600 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Sling',
-			basic: 25,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Thrusting Weapons',
-			name: 'Spear, 1H',
-			basic: 10,
-			baseChance: 10,
-			costs: { low: 200, medium: 400, high: 1000 }
-		},
-		{
-			category: 'Cut and Thrust Weapons',
-			name: 'Sword, 1H',
-			basic: 10,
-			baseChance: 10,
-			costs: { low: 300, medium: 500, high: 1000 }
-		},
-
-		// 15% Chance Base
-		{
-			category: 'Cut and Thrust Weapons',
-			name: 'Axe, 1H',
-			basic: 20,
-			baseChance: 15,
-			costs: { low: 300, medium: 500, high: 1000 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Flail',
-			basic: 15,
-			baseChance: 15,
-			costs: { low: 400, medium: 800, high: 1200 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Javelin/Dart (thrown)',
-			basic: 25,
-			baseChance: 15,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Knife (thrown)',
-			basic: 25,
-			baseChance: 15,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Smashing Weapons',
-			name: 'Maul',
-			basic: 20,
-			baseChance: 15,
-			costs: { low: 200, medium: 600, high: 1500 }
-		},
-		{
-			category: 'Cut and Thrust Weapons',
-			name: 'Shortsword',
-			basic: 15,
-			baseChance: 15,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Cut and Thrust Weapons',
-			name: 'Sickle',
-			basic: 15,
-			baseChance: 15,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-
-		// 20% Chance Base
-		{
-			category: 'Cut and Thrust Weapons',
-			name: 'Club/Mace, 1H or 2H',
-			basic: 25,
-			baseChance: 20,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Crossbow',
-			basic: 25,
-			baseChance: 20,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Smashing Weapons',
-			name: 'Hammer, 1H',
-			basic: 15,
-			baseChance: 20,
-			costs: { low: 300, medium: 600, high: 1000 }
-		},
-		{
-			category: 'Defensive Items',
-			name: 'Large Shield',
-			basic: 25,
-			baseChance: 20,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Thrusting Weapons',
-			name: 'Spear, 2H',
-			basic: 20,
-			baseChance: 20,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Staff',
-			basic: 25,
-			baseChance: 20,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-
-		// 25% Chance Base
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Dagger',
-			basic: 25,
-			baseChance: 25,
-			costs: { low: 200, medium: 400, high: 800 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Grapple',
-			basic: 25,
-			baseChance: 25,
-			costs: { low: 500, medium: 800, high: 1200 }
-		},
-		{
-			category: 'Hand to Hand Weapons',
-			name: 'Kick',
-			basic: 25,
-			baseChance: 25,
-			costs: { low: 200, medium: 400, high: 1000 }
-		},
-		{
-			category: 'Missile Weapons',
-			name: 'Thrown Rock',
-			basic: 25,
-			baseChance: 25,
-			costs: { low: 200, medium: 400, high: 800 }
-		}
-	];
 
 	const CharGenRules = {
 		STANDARD: 'standard',
@@ -439,10 +243,6 @@
 	let guildDebt = 0;
 	let showTrainingPanel = false;
 
-	function calculateEffectiveSkill(baseChance: number, trainedSkill: number): number {
-		return baseChance + trainedSkill;
-	}
-
 	function adjustSkill(weapon: string, skillType: 'attack' | 'parry', adjustment: number) {
 		const weaponType = weaponTypes.find((w) => w.name === weapon);
 		if (!weaponType) return;
@@ -514,22 +314,6 @@
 	// Calculate CHA discount (5% per point over 12)
 	$: chaDiscount = Math.max(0, (stats.CHA - 12) * 0.05);
 
-	function calculateTrainingCost(weapon: WeaponType, currentSkill: number): number {
-		// Determine which cost bracket to use based on current skill
-		let cost: number;
-		if (currentSkill < 25) {
-			cost = weapon.costs.low;
-		} else if (currentSkill < 50) {
-			cost = weapon.costs.medium;
-		} else {
-			cost = weapon.costs.high;
-		}
-
-		// Apply CHA discount
-		cost = cost * (1 - chaDiscount);
-		return Math.floor(cost);
-	}
-
 	// Track current training levels separately from weapon definitions
 	let currentTraining: WeaponTraining[] = weaponTypes.map(
 		(w: WeaponType): WeaponTraining => ({
@@ -551,6 +335,34 @@
 				originalCost: 0
 			}
 		);
+	}
+
+	let showWeaponsPanel = false;
+	let editingWeapons = false;
+
+	// Create initial weapons list from training
+	$: weapons = currentTraining
+		.filter((t) => t.attackTraining > 0 || t.parryTraining > 0)
+		.map((t) => {
+			const weapon = weaponTypes.find((w) => w.name === t.weapon);
+			if (!weapon) return null;
+			return {
+				id: t.weapon,
+				equipped: true,
+				name: t.weapon,
+				effectiveSkill: calculateEffectiveSkill(weapon.baseChance, t.attackTraining),
+				effectiveParry: calculateEffectiveSkill(weapon.baseChance, t.parryTraining),
+				strikeRank: calculateWeaponStrikeRank(weapon.strikeRank || 3, stats.DEX),
+				damage: weapon.damage || '1D6',
+				encumbrance: weapon.encumbrance || 1,
+				visible: true
+			};
+		})
+		.filter((w): w is WeaponDisplay => w !== null);
+
+	function handleWeaponSave() {
+		editingWeapons = false;
+		// Additional save logic if needed
 	}
 </script>
 
@@ -684,6 +496,35 @@
 				{/if}
 			</div>
 		{/if}
+
+		<div class="mt-4">
+			<button
+				on:click={() => (showWeaponsPanel = !showWeaponsPanel)}
+				class="flex w-full items-center justify-between rounded-lg bg-gray-100 p-3 hover:bg-gray-200"
+			>
+				<h3 class="font-bold">Weapons</h3>
+				<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+					{#if showWeaponsPanel}
+						<path
+							fill-rule="evenodd"
+							d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+							clip-rule="evenodd"
+						/>
+					{:else}
+						<path
+							fill-rule="evenodd"
+							d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+							clip-rule="evenodd"
+						/>
+					{/if}
+				</svg>
+			</button>
+			{#if showWeaponsPanel}
+				<div class="mt-2 rounded-lg border border-gray-200 bg-white p-4">
+					<WeaponPanel {weapons} bind:editingWeapons on:save={handleWeaponSave} />
+				</div>
+			{/if}
+		</div>
 
 		<div class="mt-4">
 			<button
